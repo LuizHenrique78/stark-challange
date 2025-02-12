@@ -1,8 +1,8 @@
 import os
 from enum import Enum
 
-from pydantic import BaseSettings, Field
-
+from pydantic import Field
+from pydantic_settings import BaseSettings
 
 class Environment(str, Enum):
     DEVELOPMENT = "dev"
