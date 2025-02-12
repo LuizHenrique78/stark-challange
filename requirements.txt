@@ -8,3 +8,5 @@ pytest==7.3.1
 starkbank==2.26.0
 starkbank-ecdsa==2.2.0
 psycopg2-binary==2.9.10
+Faker==36.1.0
+httpx==0.23.0

@@ -12,7 +12,7 @@ class Environment(str, Enum):
 class Settings(BaseSettings):
     DATABASE_URL: str
     RABBITMQ_URL: str
-    STARKBANK_USER_PRIVATE_KEY: str = open("app/tls/private-key.pem").read()
+    STARKBANK_USER_PRIVATE_KEY: str = open("tls/private-key.pem").read()
     STARKBANK_PROJECT_ID: str
     ENVIRONMENT: Environment = Environment.DEVELOPMENT
 

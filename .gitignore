@@ -18,6 +18,11 @@ __pycache__/
 # MacOS files
 .DS_Store
 
+#tls
+tls
+
+.idea/
+
 # C extensions
 *.so
 
