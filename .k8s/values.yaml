@@ -1,0 +1,22 @@
+replicaCount: 1
+
+auth:
+  username: admin  # change this for security
+  password: password   # change this for security
+  erlangCookie: "supersecretcookie"   # change this for security
+
+persistence:
+  enabled: true
+  storageClass: "standard"
+  size: 8Gi
+
+service:
+  type: LoadBalancer
+  ports:
+    amqp: 5672
+    manager: 15672
+
+plugins: "rabbitmq_management,rabbitmq_peer_discovery_k8s"
+
+metrics:
+  enabled: true

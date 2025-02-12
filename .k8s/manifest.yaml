@@ -1,0 +1,108 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: backend-app-<ENVIRONMENT>
+  name: <APP_NAME>
+  labels:
+    name: <APP_NAME>
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: <APP_NAME>
+  template:
+    metadata:
+      labels:
+        name: <APP_NAME>
+    spec:
+      nodeSelector:
+        doks.digitalocean.com/node-pool: <POOL>
+      containers:
+        - name: <APP_NAME>
+          image: <IMAGE>
+          imagePullPolicy: Always
+          command: ["python", "app/main.py"]
+          resources:
+            requests:
+              memory: "85Mi"
+              cpu: "5m"
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          env:
+            - name: ENVIRONMENT
+              valueFrom:
+                configMapKeyRef:
+                  name: <CONFIGMAP>
+                  key: ENVIRONMENT
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: db-secret-<ENVIRONMENT>
+                  key: DATABASE_URL
+            - name: RABBITMQ_URL
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-secret-<ENVIRONMENT>
+                  key: RABBITMQ_URL
+            - name: STARKBANK_PROJECT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: starkbank-secret-<ENVIRONMENT>
+                  key: STARKBANK_PROJECT_ID
+            - name: STARKBANK_USER_PRIVATE_KEY
+              value: "/private-key-volume/private-key.pem"
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: starkbank-private-key
+              mountPath: /private-key-volume
+              readOnly: true
+      volumes:
+        - name: starkbank-private-key
+          secret:
+            secretName: private-key
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    name: <APP_NAME>
+  name: <APP_NAME>
+  namespace: backend-app-<ENVIRONMENT>
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 80
+    targetPort: 80
+  selector:
+    name: <APP_NAME>
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: <APP_NAME>
+  namespace: backend-app-<ENVIRONMENT>
+spec:
+  maxReplicas: 10
+  metrics:
+  - resource:
+      name: cpu
+      target:
+        averageUtilization: 1100
+        type: Utilization
+    type: Resource
+  minReplicas: 1
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: <APP_NAME>
+
+---
+apiVersion: v1
+data:
+  ENVIRONMENT: "test"
+kind: ConfigMap
+metadata:
+  name: stark-server-test-configmap
+  namespace: backend-app-test

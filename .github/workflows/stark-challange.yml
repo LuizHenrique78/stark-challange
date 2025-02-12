@@ -1,0 +1,92 @@
+name: 🚀 Build and Deploy - {{SERVICE}} service
+
+on:
+  push:
+    branches:
+      - main
+      - prod
+
+env:
+  ENVIRONMENT: ${{ github.ref == 'refs/heads/prod' && 'prod' || 'test' }}
+  K8S_POOL: ${{ github.ref == 'refs/heads/prod' && 'pool-prod' || 'pool-test' }}
+  DO_REGISTRY_PREFIX: ${{ secrets.DO_REGISTRY_PREFIX || 'luiz-registry' }}
+
+jobs:
+  build_and_deploy:
+    runs-on: ubuntu-latest
+    environment: test-environment
+    env:
+      APP_NAME: "stark-server"
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: 🗂️ Navigate to Service Directory
+        run: cd services/{{SERVICE}}
+
+      - name: 🛠 Setup Dynamic Environment Variables
+        run: |
+          echo "CONFIGMAP=${{ env.APP_NAME }}-${{ env.ENVIRONMENT }}-configmap" >> $GITHUB_ENV
+          echo "BUILD_NUMBER=${{ github.run_number }}" >> $GITHUB_ENV
+          echo "IMAGE_NAME=registry.digitalocean.com/${{ env.DO_REGISTRY_PREFIX }}-${{ env.ENVIRONMENT }}/${{ env.APP_NAME }}-${{ env.ENVIRONMENT }}:1.0.${{ github.run_number }}" >> $GITHUB_ENV
+
+      - name: 📝 Prepare Deployment Configuration
+        run: |
+          sed -i \
+            -e 's|<IMAGE>|${{ env.IMAGE_NAME }}|' \
+            -e 's|<APP_NAME>|${{ env.APP_NAME }}-${{ env.ENVIRONMENT }}|' \
+            -e 's|<ENVIRONMENT>|${{ env.ENVIRONMENT }}|' \
+            -e 's|<POOL>|${{ env.K8S_POOL }}|' \
+            -e 's|<CONFIGMAP>|${{ env.CONFIGMAP }}|' \
+            $GITHUB_WORKSPACE/.k8s/manifest.yaml
+
+      - name: 🔑 Authenticate with DigitalOcean CLI
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+      - name: 🔧 Initialize DigitalOcean Account
+        run: doctl auth init {{ secrets.DIGITALOCEAN_ACCOUNT_NAME }}
+
+      - name: 🐳 Build and Tag Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./services/{{SERVICE}}
+          push: false
+          tags: ${{ env.IMAGE_NAME }}
+          labels:
+            git_pr_number=${{ github.event.pull_request.number }}
+            git_pr_label=${{ github.event.pull_request.labels }}
+          build-args: |
+            "API_TOKEN=${{ secrets.TOKEN_GITHUB }}"
+            "ENVIRONMENT=$ENVIRONMENT"
+
+      - name: 🔐 Login to DigitalOcean Container Registry
+        run: doctl registry login --expiry-seconds 1200
+
+      - name: 📤 Push Docker Image
+        run: docker push ${{ env.IMAGE_NAME }}
+
+      - name: 🌐 Update Kubernetes Configurations
+        run: doctl kubernetes cluster kubeconfig save --expiry-seconds 600 luiz-cluster
+
+      - name: 🚀 Deploy to Kubernetes
+        run: kubectl apply -f $GITHUB_WORKSPACE/.k8s/manifest.yaml
+
+      - name: 🕵️ Verify Deployment Status
+        run: |
+          kubectl rollout status --namespace=backend-app-${{ env.ENVIRONMENT }} \
+          deployment/${{ env.APP_NAME }}-${{ env.ENVIRONMENT }} --timeout=600s
+        shell: bash
+        continue-on-error: true
+
+      - name: 🕵️ Check Deployment Rollout Status
+        run: |
+          if kubectl rollout status --namespace=backend-app-${{ env.ENVIRONMENT }} deployment/${{ env.APP_NAME }}-${{ env.ENVIRONMENT }} --timeout=5s; then
+            echo "Deployment succeeded"
+          else
+            echo "Deployment failed or timed out"
+            exit 1
+          fi
+        shell: bash
+
