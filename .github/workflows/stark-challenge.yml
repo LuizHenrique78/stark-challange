@@ -1,4 +1,4 @@
-name: 🚀 Build and Deploy - {{SERVICE}} service
+name: 🚀 Build and Deploy - stark-challenge service
 
 on:
   push:
@@ -48,7 +48,7 @@ jobs:
       - name: 🐳 Build and Tag Docker Image
         uses: docker/build-push-action@v5
         with:
-          context: ./services/{{SERVICE}}
+          context: .
           push: false
           tags: ${{ env.IMAGE_NAME }}
           labels:
