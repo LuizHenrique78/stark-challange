@@ -8,6 +8,7 @@ from pydantic_settings import BaseSettings
 class Environment(str, Enum):
     DEVELOPMENT = "dev"
     PRODUCTION = "prod"
+    STAGING = "test"
 
 
 class Settings(BaseSettings):
