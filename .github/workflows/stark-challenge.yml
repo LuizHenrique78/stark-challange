@@ -21,9 +21,6 @@ jobs:
       - name: 📥 Checkout Repository
         uses: actions/checkout@v4
 
-      - name: 🗂️ Navigate to Service Directory
-        run: cd services/{{SERVICE}}
-
       - name: 🛠 Setup Dynamic Environment Variables
         run: |
           echo "CONFIGMAP=${{ env.APP_NAME }}-${{ env.ENVIRONMENT }}-configmap" >> $GITHUB_ENV
