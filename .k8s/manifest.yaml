@@ -18,7 +18,7 @@ spec:
       nodeSelector:
         doks.digitalocean.com/node-pool: <POOL>
       imagePullSecrets:
-        - name: do-registry-secret
+        - name: luiz-registry-test
       containers:
         - name: <APP_NAME>
           image: <IMAGE>
