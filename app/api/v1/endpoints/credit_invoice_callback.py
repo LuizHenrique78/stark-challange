@@ -79,6 +79,7 @@ def process_transfer_event(event: Event):
     Processes a transfer event from Stark Bank.
     Publishes the invoice data to a queue for further processing.
     """
+    logger.info(f"Processing event of type: {event.log.type}")
     if event.log.type != "credited":
         logger.info(f"Ignoring event of type: {event.log.type}")
         return
@@ -117,7 +118,6 @@ async def invoice_callback(request: Request):
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Missing Digital-Signature header"
             )
-
         try:
             event = starkbank.event.parse(content=event_data.decode("utf-8"), signature=signature)
         except starkbank.error.InvalidSignatureError as e:
@@ -126,6 +126,7 @@ async def invoice_callback(request: Request):
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Invalid signature"
             )
+        logger.info(f"Received event: {event_data.decode('utf-8')}")
 
         try:
             event_model = Event(**event)
