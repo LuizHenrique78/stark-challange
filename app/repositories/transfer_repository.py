@@ -1,5 +1,10 @@
+import logging
+
 from sqlalchemy.orm import Session
 from ..models.transfer import Transfer
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 class TransferRepository:
@@ -11,6 +16,7 @@ class TransferRepository:
         self.db.add(db_transfer)
         self.db.commit()
         self.db.refresh(db_transfer)
+        logger.info(f"Transfer {db_transfer.id} created")
         return db_transfer
 
     def update_transfer_status(self, transfer_id: int, status: str) -> Transfer:
