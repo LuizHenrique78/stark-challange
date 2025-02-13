@@ -5,6 +5,7 @@ from fastapi import APIRouter, status, Request, HTTPException
 from pydantic import BaseModel, ValidationError
 
 from app.core.config import settings
+from app.services.starkbank_client import get_starkbank_user
 from app.services.transfer_producer import TransferProducer
 from message_bus.rabbitmq.message_bus_impl import RabbitMQMessageBusConnection
 import starkbank
@@ -17,6 +18,7 @@ router = APIRouter()
 connection = RabbitMQMessageBusConnection(settings.RABBITMQ_URL)
 producer = TransferProducer(connection)
 
+get_starkbank_user()
 
 class InvoiceDescription(BaseModel):
     key: str
