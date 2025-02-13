@@ -1,9 +1,11 @@
 import json
 import logging
+from datetime import datetime
 from pathlib import Path
+from typing import List
 
 from fastapi import APIRouter, status, Request, HTTPException
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, ValidationError, HttpUrl
 
 from app.core.config import settings
 from app.services.starkbank_client import get_starkbank_user
@@ -21,24 +23,21 @@ producer = TransferProducer(connection)
 
 get_starkbank_user()
 
-class InvoiceDescription(BaseModel):
+
+class Description(BaseModel):
     key: str
     value: str
-
-
-class InvoiceDiscount(BaseModel):
-    due: str
-    percentage: float
 
 
 class Invoice(BaseModel):
     amount: int
     brcode: str
-    created: str
-    descriptions: list[InvoiceDescription]
+    created: datetime | str
+    descriptions: List[Description]
     discountAmount: int
-    discounts: list[InvoiceDiscount]
-    due: str
+    discounts: List
+    displayDescription: str
+    due: datetime | str
     expiration: int
     fee: int
     fine: float
@@ -46,31 +45,32 @@ class Invoice(BaseModel):
     id: str
     interest: float
     interestAmount: int
-    link: str
+    link: HttpUrl | str
     name: str
     nominalAmount: int
-    pdf: str
-    rules: list
-    splits: list
+    pdf: HttpUrl | str
+    rules: List
+    splits: List
     status: str
-    tags: list[str]
+    tags: List[str]
     taxId: str
-    transactionIds: list
-    updated: str
+    transactionIds: List[str]
+    updated: datetime | str
 
 
-class EventLog(BaseModel):
-    created: str
-    errors: list
+class Log(BaseModel):
+    authentication: str
+    created: datetime | str
+    errors: List
     id: str
     invoice: Invoice
     type: str
 
 
 class Event(BaseModel):
-    created: str
+    created: datetime | str
     id: str
-    log: EventLog
+    log: Log
     subscription: str
     workspaceId: str
 
@@ -120,7 +120,7 @@ async def invoice_callback(request: Request):
                 detail="Missing Digital-Signature header"
             )
         try:
-            event = starkbank.event.parse(content=event_data.decode("utf-8"), signature=signature)
+            starkbank.event.parse(content=event_data.decode("utf-8"), signature=signature)
         except starkbank.error.InvalidSignatureError as e:
             logger.error(f"Invalid signature: {str(e)}")
             raise HTTPException(
