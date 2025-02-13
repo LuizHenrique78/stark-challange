@@ -29,5 +29,8 @@ class Settings(BaseSettings):
             self.DATABASE_URL = "postgresql://postgres:exemple@localhost:5432/mydb"
             self.RABBITMQ_URL = "amqp://user:pass@localhost:5672"
 
+        if self.ENVIRONMENT == Environment.STAGING:
+            self.STARKBANK_USER_PRIVATE_KEY = open('/private-key-volume/private-key.pem').read()
+
 
 settings = Settings()
