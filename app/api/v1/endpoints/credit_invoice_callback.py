@@ -130,7 +130,9 @@ async def invoice_callback(request: Request):
         logger.info(f"Received event: {event_data.decode('utf-8')}")
 
         try:
-            event_model = Event(**json.loads(event_data.decode("utf-8")))
+            event_received_data = json.loads(event_data.decode("utf-8"))
+            event_data = event_received_data.get("event")
+            event_model = Event(**event_data)
         except ValidationError as e:
             logger.error(f"Invalid event data: {str(e)}")
             raise HTTPException(
