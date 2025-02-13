@@ -1,6 +1,6 @@
 import uvicorn
 from fastapi import FastAPI
-from app.api.v1.endpoints import invoice_callback as webhooks
+from app.api.v1.endpoints import credit_invoice_callback as webhooks
 
 app = FastAPI(
     title="Stark Bank Challenge API",
@@ -9,11 +9,6 @@ app = FastAPI(
 )
 
 app.include_router(webhooks.router, prefix="/api/v1", tags=["Webhooks"])
-
-
-@app.get("/", tags=["Root"])
-def root():
-    return {"message": "Welcome to Stark Bank Challenge API"}
 
 
 if __name__ == "__main__":

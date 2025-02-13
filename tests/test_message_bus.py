@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import MagicMock, patch
 import json
 
-from app.services.transaction_producer import TransactionProducer
+from app.services.transfer_producer import TransferProducer
 from message_bus.message_bus import IMessageBusConnection
 
 
@@ -13,7 +13,7 @@ class TestTransactionProducer(unittest.TestCase):
         self.mock_channel = MagicMock()
         self.mock_connection.get_channel.return_value = self.mock_channel
 
-        self.producer = TransactionProducer(self.mock_connection)
+        self.producer = TransferProducer(self.mock_connection)
 
     def test_init(self):
         """Initialization test."""
