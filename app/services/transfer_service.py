@@ -1,7 +1,11 @@
-# starkbank_transfer/services/transfer_service.py
+import logging
+
 import starkbank
 from ..repositories.transfer_repository import TransferRepository
 from ..models.transfer import Transfer
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 class TransferService:
@@ -14,6 +18,7 @@ class TransferService:
         fine_amount = invoice.get("fineAmount", 0)
         interest_amount = invoice.get("interestAmount", 0)
         net_amount = amount - fee - fine_amount - interest_amount
+        logger.info(f"Calculated net amount for invoice {invoice['id']}: {net_amount}")
         return max(net_amount, 0)
 
     def create_transfer(self, invoice: dict) -> Transfer:
@@ -32,6 +37,7 @@ class TransferService:
                 tags=["webhook-transfer"],
             )
         ])
+        logger.info(f"Created transfer for invoice {invoice['id']}: {transfer[0].id}")
 
         transfer_data = {
             "invoice_id": invoice["id"],

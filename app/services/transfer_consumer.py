@@ -1,10 +1,13 @@
 # starkbank_transfer/consumers/transaction_consumer.py
 import json
+import logging
 from typing import Callable
 from ..services.transfer_service import TransferService
 from ..repositories.transfer_repository import TransferRepository
 from sqlalchemy.orm import Session
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 class TransferConsumer:
     def __init__(self, connection, db: Session, routing_key: str = "transactions"):
@@ -27,4 +30,4 @@ class TransferConsumer:
         try:
             self.transfer_service.create_transfer(transfer_data["invoice"])
         except Exception as e:
-            print(f"Erro ao processar transferência: {e}")
+            logger.info(f"Error processing transfer: {str(e)}")

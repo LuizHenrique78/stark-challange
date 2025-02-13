@@ -81,7 +81,7 @@ def process_transfer_event(event: Event):
     Publishes the invoice data to a queue for further processing.
     """
     logger.info(f"Processing event of type: {event.log.type}")
-    if event.log.type != "created":
+    if event.log.type != "paid":
         logger.info(f"Ignoring event of type: {event.log.type}")
         return
 
