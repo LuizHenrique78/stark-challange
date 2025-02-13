@@ -14,7 +14,7 @@ class Environment(str, Enum):
 class Settings(BaseSettings):
     DATABASE_URL: str = Field("default")
     RABBITMQ_URL: str = Field("default")
-    STARKBANK_USER_PRIVATE_KEY: str | bytes = Field("default")
+    STARKBANK_USER_PRIVATE_KEY: str = Field("default")
     STARKBANK_PROJECT_ID: str
     ENVIRONMENT: Environment = Environment.DEVELOPMENT
 
