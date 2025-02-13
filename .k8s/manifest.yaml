@@ -108,3 +108,133 @@ kind: ConfigMap
 metadata:
   name: stark-server-test-configmap
   namespace: backend-app-test
+
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: stark-scheduler-<ENVIRONMENT>
+  namespace: backend-app-<ENVIRONMENT>
+  labels:
+    app: stark-scheduler
+    component: producer
+spec:
+  schedule: "0 */3 * * *"  # Executa a cada 3 horas
+  timeZone: "America/Sao_Paulo"
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      template:
+        metadata:
+          labels:
+            app: <APP_NAME>
+            component: producer
+        spec:
+          restartPolicy: Never
+          nodeSelector:
+            doks.digitalocean.com/node-pool: <POOL>
+          containers:
+            - name: stark-scheduler-<ENVIRONMENT>
+              image: <IMAGE>
+              imagePullPolicy: Always
+              command: [ "python", "app/workers/invoice_scheduler.py" ]
+              env:
+                - name: ENVIRONMENT
+                  valueFrom:
+                    configMapKeyRef:
+                      name: <CONFIGMAP>
+                      key: ENVIRONMENT
+                - name: DATABASE_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: db-secret-<ENVIRONMENT>
+                      key: DATABASE_URL
+                - name: RABBITMQ_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: rabbitmq-secret-<ENVIRONMENT>
+                      key: RABBITMQ_URL
+                - name: STARKBANK_PROJECT_ID
+                  valueFrom:
+                    secretKeyRef:
+                      name: starkbank-secret-<ENVIRONMENT>
+                      key: STARKBANK_PROJECT_ID
+                - name: STARKBANK_USER_PRIVATE_KEY
+                  value: "/private-key-volume/private-key.pem"
+              volumeMounts:
+                - name: starkbank-private-key
+                  mountPath: /private-key-volume
+                  readOnly: true
+          volumes:
+            - name: starkbank-private-key
+              secret:
+                secretName: private-key
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: backend-app-<ENVIRONMENT>
+  name: stark-transaction-wrk-<ENVIRONMENT>
+  labels:
+    name: stark-transaction-wrk
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: stark-transaction-wrk-<ENVIRONMENT>
+  template:
+    metadata:
+      labels:
+        name: stark-transaction-wrk-<ENVIRONMENT>
+    spec:
+      nodeSelector:
+        doks.digitalocean.com/node-pool: <POOL>
+      imagePullSecrets:
+        - name: luiz-registry-test
+      containers:
+        - name: stark-transaction-wrk-<ENVIRONMENT>
+          image: <IMAGE>
+          imagePullPolicy: Always
+          command: ["python", "app/workers/transfer_worker.py"]
+          resources:
+            requests:
+              memory: "85Mi"
+              cpu: "5m"
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          env:
+            - name: ENVIRONMENT
+              valueFrom:
+                configMapKeyRef:
+                  name: <CONFIGMAP>
+                  key: ENVIRONMENT
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: db-secret-<ENVIRONMENT>
+                  key: DATABASE_URL
+            - name: RABBITMQ_URL
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-secret-<ENVIRONMENT>
+                  key: RABBITMQ_URL
+            - name: STARKBANK_PROJECT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: starkbank-secret-<ENVIRONMENT>
+                  key: STARKBANK_PROJECT_ID
+            - name: STARKBANK_USER_PRIVATE_KEY
+              value: "/private-key-volume/private-key.pem"
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: starkbank-private-key
+              mountPath: /private-key-volume
+              readOnly: true
+      volumes:
+        - name: starkbank-private-key
+          secret:
+            secretName: private-key

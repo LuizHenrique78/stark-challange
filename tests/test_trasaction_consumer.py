@@ -1,10 +1,12 @@
 import unittest
 from unittest.mock import MagicMock, patch
 import json
+from sqlalchemy.orm import Session
 
-from app.services.transaction_consumer import TransactionConsumer
+from app.repositories.transfer_repository import TransferRepository
+from app.services.transfer_consumer import TransferConsumer
+from app.services.transfer_service import TransferService
 from message_bus.message_bus import IMessageBusConnection
-import starkbank
 
 
 class TestTransactionConsumer(unittest.TestCase):
@@ -14,85 +16,100 @@ class TestTransactionConsumer(unittest.TestCase):
         self.mock_channel = MagicMock()
         self.mock_connection.get_channel.return_value = self.mock_channel
 
-        self.consumer = TransactionConsumer(self.mock_connection)
+        self.mock_db = MagicMock(spec=Session)
 
-    def test_init(self):
-        """Test if the queue is declared correctly during initialization."""
-        self.mock_connection.get_channel.assert_called_once()
+        self.mock_transfer_repository = MagicMock(spec=TransferRepository)
+        self.mock_transfer_service = MagicMock(spec=TransferService)
 
-        self.mock_channel.queue_declare.assert_called_once_with(name='transactions', durable=True)
+        self.consumer = TransferConsumer(
+            connection=self.mock_connection,
+            db=self.mock_db,
+            routing_key="transactions"
+        )
+
+        self.consumer.transfer_service = self.mock_transfer_service
 
     def test_consume(self):
-        """Test if the consume method calls the callback with the correct data."""
+        """Testa se o método consume chama o callback com os dados corretos."""
         mock_callback = MagicMock()
 
         mock_body = json.dumps({
-            'amount': 100,
-            'tax_id': '123.456.789-09',
-            'name': 'John Doe',
-            'bank_code': '001',
-            'branch_code': '0001',
-            'account_number': '12345-6',
-            'external_id': '123456',
-            'tags': ['tag1', 'tag2'],
-            'rules': [{'key': 'rule1', 'value': 'value1'}],
-            'account_type': 'checking'
-        }).encode('utf-8')
+            "invoice": {
+                "id": "12345",
+                "amount": 10000,
+                "fee": 100,
+                "fineAmount": 50,
+                "interestAmount": 30,
+                "net_amount": 9820,
+                "external_id": "external-12345",
+                "status": "created",
+                "payload": {"key": "value"}
+            }
+        }).encode("utf-8")
 
         self.mock_channel.consume_messages.side_effect = lambda queue_name, callback: callback(mock_body)
 
         self.consumer.consume(mock_callback)
 
         mock_callback.assert_called_once_with({
-            'amount': 100,
-            'tax_id': '123.456.789-09',
-            'name': 'John Doe',
-            'bank_code': '001',
-            'branch_code': '0001',
-            'account_number': '12345-6',
-            'external_id': '123456',
-            'tags': ['tag1', 'tag2'],
-            'rules': [{'key': 'rule1', 'value': 'value1'}],
-            'account_type': 'checking'
+            "invoice": {
+                "id": "12345",
+                "amount": 10000,
+                "fee": 100,
+                "fineAmount": 50,
+                "interestAmount": 30,
+                "net_amount": 9820,
+                "external_id": "external-12345",
+                "status": "created",
+                "payload": {"key": "value"}
+            }
         })
 
-    @patch('starkbank.transfer.create')
-    def test_process_transfer(self, mock_transfer_create):
-        """Test if the process_transfer method calls starkbank.transfer.create with the correct data."""
-        transfer_data = {
-            'amount': 100,
-            'tax_id': '123.456.789-09',
-            'name': 'John Doe',
-            'bank_code': '001',
-            'branch_code': '0001',
-            'account_number': '12345-6',
-            'external_id': '123456',
-            'tags': ['tag1', 'tag2'],
-            'rules': [{'key': 'rule1', 'value': 'value1'}],
-            'account_type': 'checking'
-        }
+    def test_process_transfer(self):
+        """Testa se o método process_transfer chama o TransferService corretamente."""
 
-        mock_transfer_create.return_value = [MagicMock(id='123', amount=100, external_id='123456')]
+        transfer_data = {
+            "invoice": {
+                "id": "12345",
+                "amount": 10000,
+                "fee": 100,
+                "fineAmount": 50,
+                "interestAmount": 30,
+                "net_amount": 9820,
+                "external_id": "external-12345",
+                "status": "created",
+                "payload": {"key": "value"}
+            }
+        }
 
         self.consumer.process_transfer(transfer_data)
 
-        mock_transfer_create.assert_called_once()
+        self.mock_transfer_service.create_transfer.assert_called_once_with(transfer_data["invoice"])
 
-        args, kwargs = mock_transfer_create.call_args
-        created_transfer = args[0][0]
+    @patch("builtins.print")
+    def test_process_transfer_exception(self, mock_print):
+        """Testa se exceções no process_transfer são tratadas corretamente."""
 
-        self.assertEqual(created_transfer.amount, 100)
-        self.assertEqual(created_transfer.tax_id, '123.456.789-09')
-        self.assertEqual(created_transfer.name, 'John Doe')
-        self.assertEqual(created_transfer.bank_code, '001')
-        self.assertEqual(created_transfer.branch_code, '0001')
-        self.assertEqual(created_transfer.account_number, '12345-6')
-        self.assertEqual(created_transfer.external_id, '123456')
-        self.assertEqual(created_transfer.tags, ['tag1', 'tag2'])
-        self.assertEqual(created_transfer.rules[0].key, 'rule1')
-        self.assertEqual(created_transfer.rules[0].value, 'value1')
-        self.assertEqual(created_transfer.account_type, 'checking')
+        transfer_data = {
+            "invoice": {
+                "id": "12345",
+                "amount": 10000,
+                "fee": 100,
+                "fineAmount": 50,
+                "interestAmount": 30,
+                "net_amount": 9820,
+                "external_id": "external-12345",
+                "status": "created",
+                "payload": {"key": "value"}
+            }
+        }
+
+        self.mock_transfer_service.create_transfer.side_effect = Exception("Erro simulado")
+
+        self.consumer.process_transfer(transfer_data)
+
+        mock_print.assert_called_once_with("Erro ao processar transferência: Erro simulado")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

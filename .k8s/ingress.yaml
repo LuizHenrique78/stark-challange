@@ -1,0 +1,24 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: stark-server-ingress
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-test
+  namespace: backend-app-test
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: stark-challenge.lh-test.net
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: stark-server-test
+            port:
+              number: 80
+  tls:
+  - hosts:
+    - stark-challenge.lh-test.net
+    secretName: stark-test-tls
