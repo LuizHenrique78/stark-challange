@@ -27,6 +27,7 @@ class TransferConsumer:
         channel.start_consuming()
 
     def process_transfer(self, transfer_data: dict) -> None:
+        # TODO: Process the transfer as a class not dict
         try:
             self.transfer_service.create_transfer(transfer_data)
         except Exception as e:
