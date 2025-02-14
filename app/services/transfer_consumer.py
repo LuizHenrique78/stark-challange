@@ -28,6 +28,6 @@ class TransferConsumer:
 
     def process_transfer(self, transfer_data: dict) -> None:
         try:
-            self.transfer_service.create_transfer(transfer_data["invoice"])
+            self.transfer_service.create_transfer(transfer_data)
         except Exception as e:
             logger.info(f"Error processing transfer: {str(e)}")
