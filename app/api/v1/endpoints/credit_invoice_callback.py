@@ -52,6 +52,40 @@ def process_transfer_event(event: Event):
     description=Path(
         "docs/credited-webhook-example.md",
     ).read_text(),
+    responses={
+        200: {
+            "description": "Webhook received successfully",
+            "content": {
+                "application/json": {
+                    "example": {"message": "Webhook received successfully"}
+                }
+            }
+        },
+        400: {
+            "description": "Bad Request",
+            "content": {
+                "application/json": {
+                    "example": {"detail": "Missing Digital-Signature header"}
+                }
+            }
+        },
+        500: {
+            "description": "Internal Server Error",
+            "content": {
+                "application/json": {
+                    "example": {"detail": "Internal server error"}
+                }
+            }
+        },
+        403: {
+            "description": "Forbidden",
+            "content": {
+                "application/json": {
+                    "example": {"detail": "Invalid signature"}
+                }
+            }
+        }
+    }
 )
 async def invoice_callback(request: Request):
     """
@@ -73,7 +107,7 @@ async def invoice_callback(request: Request):
         except starkbank.error.InvalidSignatureError as e:
             logger.error(f"Invalid signature: {str(e)}")
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
+                status_code=status.HTTP_403_FORBIDDEN,
                 detail="Invalid signature"
             )
         logger.info(f"Received event: {event_data.decode('utf-8')}")

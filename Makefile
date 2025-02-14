@@ -63,9 +63,9 @@ run-server:
 	@echo "Iniciando servidor em modo de desenvolvimento..."
 	$(PYTHON) -m uvicorn app.main:app --reload
 
-run-invoice-issuer:
+run-invoice-worker:
 	@echo "Iniciando worker invoice_issuer em modo de desenvolvimento..."
-	$(PYTHON) -m app.workers.invoice_issuer
+	$(PYTHON) -m app.workers.invoice_worker
 
 run-invoice-scheduler:
 	@echo "Iniciando worker invoice_scheduler em modo de desenvolvimento..."
