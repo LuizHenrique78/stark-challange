@@ -1,12 +1,11 @@
 import json
 import logging
-from datetime import datetime
 from pathlib import Path
-from typing import List
 
 from fastapi import APIRouter, status, Request, HTTPException
-from pydantic import BaseModel, ValidationError, HttpUrl
+from pydantic import ValidationError
 
+from app.api.v1.schemas.invoice_schema import Event
 from app.core.config import settings
 from app.services.starkbank_client import get_starkbank_user
 from app.services.transfer_producer import TransferProducer
@@ -24,57 +23,6 @@ producer = TransferProducer(connection)
 get_starkbank_user()
 
 
-class Description(BaseModel):
-    key: str
-    value: str
-
-
-class Invoice(BaseModel):
-    amount: int
-    brcode: str
-    created: datetime | str
-    descriptions: List[Description]
-    discountAmount: int
-    discounts: List
-    displayDescription: str
-    due: datetime | str
-    expiration: int
-    fee: int
-    fine: float
-    fineAmount: int
-    id: str
-    interest: float
-    interestAmount: int
-    link: HttpUrl | str
-    name: str
-    nominalAmount: int
-    pdf: HttpUrl | str
-    rules: List
-    splits: List
-    status: str
-    tags: List[str]
-    taxId: str
-    transactionIds: List[str]
-    updated: datetime | str
-
-
-class Log(BaseModel):
-    authentication: str
-    created: datetime | str
-    errors: List
-    id: str
-    invoice: Invoice
-    type: str
-
-
-class Event(BaseModel):
-    created: datetime | str
-    id: str
-    log: Log
-    subscription: str
-    workspaceId: str
-
-
 def process_transfer_event(event: Event):
     """
     Processes a transfer event from Stark Bank.
@@ -86,7 +34,8 @@ def process_transfer_event(event: Event):
         return
 
     try:
-        producer.publish(event.log.invoice.model_dump())
+        # TODO: Publish a class to the queue not dict after refactoring remove model_dump by alias
+        producer.publish(event.log.invoice.model_dump(by_alias=True))
         logger.info(f"Invoice {event.log.invoice.id} published to queue")
     except Exception as e:
         logger.error(f"Error publishing invoice to queue: {str(e)}")

@@ -20,9 +20,9 @@ class Settings(BaseSettings):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.setup_local_environment()
+        self.setup_environment()
 
-    def setup_local_environment(self):
+    def setup_environment(self):
         """Set environment local variables."""
         if self.ENVIRONMENT == Environment.DEVELOPMENT:
             self.STARKBANK_USER_PRIVATE_KEY = open("tls/private-key.pem").read()
