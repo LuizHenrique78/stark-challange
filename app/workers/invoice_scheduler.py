@@ -1,8 +1,14 @@
+import logging
+
 import starkbank
 import random
 from datetime import datetime, timedelta
 from faker import Faker
 from app.services.starkbank_client import get_starkbank_user
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 
 get_starkbank_user()
 
@@ -40,5 +46,5 @@ if __name__ == "__main__":
     created_invoices = starkbank.invoice.create(invoices)
 
     for invoice in created_invoices:
-        print(
+        logger.info(
             f"Invoice ID: {invoice.id}, Name: {invoice.name}, CPF: {invoice.tax_id}, Amount: {invoice.amount}, Due: {invoice.due}")

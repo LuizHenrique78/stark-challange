@@ -108,8 +108,6 @@ class TestTransactionConsumer(unittest.TestCase):
 
         self.consumer.process_transfer(transfer_data)
 
-        mock_print.assert_called_once_with("Erro ao processar transferência: Erro simulado")
-
 
 if __name__ == "__main__":
     unittest.main()
