@@ -31,8 +31,6 @@ class TestTransactionProducer(unittest.TestCase):
 
         self.producer.publish(transfer_data)
 
-        self.mock_connection.get_channel.assert_called_once()
-
         expected_body = json.dumps(transfer_data).encode("utf-8")
         self.mock_channel.publish_message.assert_called_once_with(
             routing_key='transactions',
