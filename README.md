@@ -37,4 +37,8 @@ Run the script to start up the queue worker
 make run-queue-worker
 ```
 
+Run tests scripts
+```bash
+make test
+```
 
