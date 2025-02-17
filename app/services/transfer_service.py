@@ -1,4 +1,5 @@
 import logging
+import uuid
 
 import starkbank
 from ..repositories.transfer_repository import TransferRepository
@@ -24,6 +25,7 @@ class TransferService:
 
     def create_transfer(self, invoice: dict) -> Transfer:
         net_amount = self.calculate_net_amount(invoice)
+        external_id = f"{uuid.uuid4()}"
 
         transfer = starkbank.transfer.create([
             starkbank.Transfer(
@@ -34,7 +36,7 @@ class TransferService:
                 tax_id="20.018.183/0001-80",
                 name="Stark Bank S.A.",
                 account_type="payment",
-                external_id=f"transfer-{invoice["id"]}",
+                external_id=external_id,
                 tags=["webhook-transfer"],
             )
         ])
@@ -49,7 +51,7 @@ class TransferService:
             "interest_amount": invoice["interestAmount"],
             "net_amount": net_amount,
             "transfer_id": transfer[0].id,
-            "external_id": f"transfer-{invoice["id"]}",
+            "external_id": external_id,
             "status": "created",
             "payload": invoice,
         }
