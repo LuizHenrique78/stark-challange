@@ -84,7 +84,7 @@ class TestTransactionConsumer(unittest.TestCase):
 
         self.consumer.process_transfer(transfer_data)
 
-        self.mock_transfer_service.create_transfer.assert_called_once_with(transfer_data["invoice"])
+        self.mock_transfer_service.create_transfer.assert_called_once_with(transfer_data)
 
     @patch("builtins.print")
     def test_process_transfer_exception(self, mock_print):

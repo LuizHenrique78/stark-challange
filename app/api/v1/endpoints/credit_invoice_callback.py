@@ -97,15 +97,16 @@ async def invoice_callback(request: Request):
         signature = request.headers.get("Digital-Signature")
 
         if not signature:
-            logger.error("Missing Digital-Signature header")
+            logger.error("Missing Signature")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Missing Digital-Signature header"
+                detail="Missing Signature"
             )
         try:
             starkbank.event.parse(content=event_data.decode("utf-8"), signature=signature)
         except starkbank.error.InvalidSignatureError as e:
             logger.error(f"Invalid signature: {str(e)}")
+
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Invalid signature"
@@ -134,6 +135,7 @@ async def invoice_callback(request: Request):
     except HTTPException:
         raise
     except Exception as e:
+        print(e)
         logger.error(f"Unexpected error processing invoice callback: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
